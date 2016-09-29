@@ -23,6 +23,7 @@
 #include "util/logging.h"
 #include "util/mutexlock.h"
 #include "util/posix_logger.h"
+#include<iostream>
 
 namespace leveldb {
 
@@ -79,10 +80,12 @@ class PosixRandomAccessFile: public RandomAccessFile {
   virtual Status Read(uint64_t offset, size_t n, Slice* result,
                       char* scratch) const {
     Status s;
+    printf("Random AccessFile coming\n");
     ssize_t r = pread(fd_, scratch, n, static_cast<off_t>(offset));
     *result = Slice(scratch, (r < 0) ? 0 : r);
     if (r < 0) {
       // An error: return a non-ok status
+     printf("Random AccessFile IO Error\n");
       s = IOError(filename_, errno);
     }
     return s;
@@ -191,6 +194,7 @@ class PosixWritableFile : public WritableFile {
   virtual Status Append(const Slice& data) {
     size_t r = fwrite_unlocked(data.data(), 1, data.size(), file_);
     if (r != data.size()) {
+    	//printf("append errorno=%d",errno);
       return IOError(filename_, errno);
     }
     return Status::OK();
@@ -561,6 +565,7 @@ void PosixEnv::Schedule(void (*function)(void*), void* arg) {
   queue_.push_back(BGItem());
   queue_.back().function = function;
   queue_.back().arg = arg;
+
 
   PthreadCall("unlock", pthread_mutex_unlock(&mu_));
 }

@@ -21,6 +21,8 @@ class Env;
 class TableCache {
  public:
   TableCache(const std::string& dbname, const Options* options, int entries);
+  //whc add
+  TableCache(const std::string& dbname, const Options* options, int entries,SSDCache* ssdcache);
   ~TableCache();
 
   // Return an iterator for the specified file number (the corresponding
@@ -52,6 +54,8 @@ class TableCache {
   const std::string dbname_;
   const Options* options_;
   Cache* cache_;
+  //whc add
+  SSDCache* ssdcache_;
 
   Status FindTable(uint64_t file_number, uint64_t file_size, Cache::Handle**);
 };

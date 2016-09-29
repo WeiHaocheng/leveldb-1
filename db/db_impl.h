@@ -7,6 +7,7 @@
 
 #include <deque>
 #include <set>
+#include <unordered_map>
 #include "db/dbformat.h"
 #include "db/log_writer.h"
 #include "db/snapshot.h"
@@ -14,6 +15,7 @@
 #include "leveldb/env.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
+#include "db/ssd.h"
 
 namespace leveldb {
 
@@ -68,6 +70,9 @@ class DBImpl : public DB {
   friend class DB;
   struct CompactionState;
   struct Writer;
+  //whc add
+  //int* ssd_trail;
+  std::unordered_map<int,int>  map;
 
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,
@@ -127,11 +132,16 @@ class DBImpl : public DB {
   bool owns_cache_;
   const std::string dbname_;
 
+  const std::string ssdname_ = "/tmp/vssd";
+
   // table_cache_ provides its own synchronization
   TableCache* table_cache_;
 
   // Lock over the persistent DB state.  Non-NULL iff successfully acquired.
   FileLock* db_lock_;
+
+  //whc add
+  SSDCache* ssd_cache_;
 
   // State below is protected by mutex_
   port::Mutex mutex_;

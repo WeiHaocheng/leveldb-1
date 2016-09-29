@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 #include "leveldb/iterator.h"
+#include "db/ssd.h"
+#include "leveldb/cache.h"
 
 namespace leveldb {
 
@@ -39,6 +41,14 @@ class Table {
                      RandomAccessFile* file,
                      uint64_t file_size,
                      Table** table);
+
+  //whc add
+  static Status SSDOpen(const Options& options,
+                       RandomAccessFile* file,
+                       uint64_t file_size,
+                       Table** table,
+					   SSDCache* ssdcache,
+					   SSDCacheKey* ssdkey);
 
   ~Table();
 

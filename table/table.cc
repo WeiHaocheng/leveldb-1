@@ -14,6 +14,9 @@
 #include "table/format.h"
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
+#include "db/ssd.h"
+#include "leveldb/cache.h"
+#include <iostream>
 
 namespace leveldb {
 
@@ -66,6 +69,9 @@ Status Table::Open(const Options& options,
     if (s.ok()) {
       index_block = new Block(contents);
     }
+
+    //whc add
+    //printf("size of index_block is %d\n",contents.data.size());
   }
 
   if (s.ok()) {
@@ -88,6 +94,79 @@ Status Table::Open(const Options& options,
   return s;
 }
 
+//whc add
+Status Table::SSDOpen(const Options& options,
+                   RandomAccessFile* file,
+                   uint64_t size,
+                   Table** table,
+				   SSDCache* ssdcache,
+				   SSDCacheKey* ssdkey) {
+  *table = NULL;
+  if (size < Footer::kEncodedLength) {
+    return Status::Corruption("file is too short to be an sstable");
+  }
+
+  ssdkey->blocknum_ = 1;
+  Cache::Handle* h = ssdcache->Lookup(*ssdkey);
+
+  char footer_space[Footer::kEncodedLength];
+  Slice footer_input;
+  Status s;
+  if(h==NULL){
+	  s = file->Read(size - Footer::kEncodedLength, Footer::kEncodedLength,
+                        	&footer_input, footer_space);
+	  if (!s.ok()) return s;
+	  ssdcache->Insert(*ssdkey,footer_input.data(),footer_input.size());
+  }else{
+	 footer_input = *(reinterpret_cast<Slice*>(h));
+  }
+
+  Footer footer;
+  s = footer.DecodeFrom(&footer_input);
+  if (!s.ok()) return s;
+
+  // Read the index block
+  BlockContents contents;
+  Block* index_block = NULL;
+  if (s.ok()) {
+    ReadOptions opt;
+    if (options.paranoid_checks) {
+      opt.verify_checksums = true;
+    }
+    s = ReadBlock(file, opt, footer.index_handle(), &contents);
+    if (s.ok()) {
+      index_block = new Block(contents);
+    }
+
+    //whc add
+    //printf("size of index_block is %d\n",contents.data.size());
+  }
+
+  if (s.ok()) {
+    // We've successfully read the footer and the index block: we're
+    // ready to serve requests.
+    Rep* rep = new Table::Rep;
+    rep->options = options;
+    rep->file = file;
+    rep->metaindex_handle = footer.metaindex_handle();
+    rep->index_block = index_block;
+    rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
+    rep->filter_data = NULL;
+    rep->filter = NULL;
+    *table = new Table(rep);
+    (*table)->ReadMeta(footer);
+  } else {
+    delete index_block;
+  }
+
+  return s;
+}
+
+
+
+
+
+
 void Table::ReadMeta(const Footer& footer) {
   if (rep_->options.filter_policy == NULL) {
     return;  // Do not need any metadata
@@ -109,6 +188,8 @@ void Table::ReadMeta(const Footer& footer) {
   Iterator* iter = meta->NewIterator(BytewiseComparator());
   std::string key = "filter.";
   key.append(rep_->options.filter_policy->Name());
+  //whc add
+  //std::cout<<"key = "<< key<<std::endl;
   iter->Seek(key);
   if (iter->Valid() && iter->key() == Slice(key)) {
     ReadFilter(iter->value());
@@ -134,6 +215,8 @@ void Table::ReadFilter(const Slice& filter_handle_value) {
   if (!ReadBlock(rep_->file, opt, filter_handle, &block).ok()) {
     return;
   }
+  //whc add
+   //std::cout<<"filter.size = "<< block.data.size()<<std::endl;
   if (block.heap_allocated) {
     rep_->filter_data = block.data.data();     // Will need to delete later
   }

@@ -21,6 +21,7 @@ $(shell CC="$(CC)" CXX="$(CXX)" TARGET_OS="$(TARGET_OS)" \
 include build_config.mk
 
 TESTS = \
+	db/ssd_test \
 	db/autocompact_test \
 	db/c_test \
 	db/corruption_test \
@@ -45,7 +46,7 @@ TESTS = \
 	util/coding_test \
 	util/crc32c_test \
 	util/env_test \
-	util/hash_test
+	util/hash_test 
 
 UTILS = \
 	db/db_bench \
@@ -121,7 +122,7 @@ SHARED_MEMENVLIB = $(SHARED_OUTDIR)/libmemenv.a
 else
 # Update db.h if you change these.
 SHARED_VERSION_MAJOR = 1
-SHARED_VERSION_MINOR = 18
+SHARED_VERSION_MINOR = 19
 SHARED_LIB1 = libleveldb.$(PLATFORM_SHARED_EXT)
 SHARED_LIB2 = $(SHARED_LIB1).$(SHARED_VERSION_MAJOR)
 SHARED_LIB3 = $(SHARED_LIB1).$(SHARED_VERSION_MAJOR).$(SHARED_VERSION_MINOR)
@@ -378,6 +379,9 @@ $(STATIC_OUTDIR)/version_set_test:db/version_set_test.cc $(STATIC_LIBOBJECTS) $(
 
 $(STATIC_OUTDIR)/write_batch_test:db/write_batch_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/write_batch_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+#whc add
+$(STATIC_OUTDIR)/ssd_test:db/ssd_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/ssd_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
 $(STATIC_OUTDIR)/memenv_test:$(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_OUTDIR)/libmemenv.a $(STATIC_OUTDIR)/libleveldb.a $(TESTHARNESS)
 	$(XCRUN) $(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_OUTDIR)/libmemenv.a $(STATIC_OUTDIR)/libleveldb.a $(TESTHARNESS) -o $@ $(LIBS)

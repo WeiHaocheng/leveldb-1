@@ -38,6 +38,18 @@ TableCache::TableCache(const std::string& dbname,
       cache_(NewLRUCache(entries)) {
 }
 
+//whc add
+TableCache::TableCache(const std::string& dbname,
+                       const Options* options,
+                       int entries,
+					   SSDCache* ssdcache)
+    : env_(options->env),
+      dbname_(dbname),
+      options_(options),
+      cache_(NewLRUCache(entries)),
+       ssdcache_(ssdcache) {
+}
+
 TableCache::~TableCache() {
   delete cache_;
 }
@@ -61,7 +73,14 @@ Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,
       }
     }
     if (s.ok()) {
-      s = Table::Open(*options_, file, file_size, &table);
+      //s = Table::Open(*options_, file, file_size, &table);
+    	// whc change
+		#ifdef SSD_USED
+    	SSDCacheKey ssdkey(file_number,0);
+    	s = Table::SSDOpen(*options_, file, file_size, &table,ssdcache_,&ssdkey);
+		#else
+    	s = Table::Open(*options_, file, file_size, &table);
+		#endif
     }
 
     if (!s.ok()) {

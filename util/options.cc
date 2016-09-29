@@ -6,6 +6,7 @@
 
 #include "leveldb/comparator.h"
 #include "leveldb/env.h"
+#include "leveldb/filter_policy.h"
 
 namespace leveldb {
 
@@ -21,9 +22,11 @@ Options::Options()
       block_cache(NULL),
       block_size(4096),
       block_restart_interval(16),
+      max_file_size(2<<20),
       compression(kSnappyCompression),
       reuse_logs(false),
-      filter_policy(NULL) {
+      //filter_policy(NULL) {
+	  filter_policy(NewBloomFilterPolicy(10)) {
 }
 
 }  // namespace leveldb

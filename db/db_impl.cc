@@ -32,6 +32,7 @@
 #include "util/coding.h"
 #include "util/logging.h"
 #include "util/mutexlock.h"
+#include  <iostream>
 
 namespace leveldb {
 
@@ -96,6 +97,7 @@ Options SanitizeOptions(const std::string& dbname,
   result.filter_policy = (src.filter_policy != NULL) ? ipolicy : NULL;
   ClipToRange(&result.max_open_files,    64 + kNumNonTableCacheFiles, 50000);
   ClipToRange(&result.write_buffer_size, 64<<10,                      1<<30);
+  ClipToRange(&result.max_file_size,     1<<20,                       1<<30);
   ClipToRange(&result.block_size,        1<<10,                       4<<20);
   if (result.info_log == NULL) {
     // Open a log file in the same directory as the db
@@ -108,6 +110,10 @@ Options SanitizeOptions(const std::string& dbname,
     }
   }
   if (result.block_cache == NULL) {
+	  // whc change
+	 // std::cout<<"set cach size"<<std::endl;
+	  //uint64_t k =1;
+	  //printf("set cache size: %lld\n",(k<<33));
     result.block_cache = NewLRUCache(8 << 20);
   }
   return result;
@@ -136,12 +142,24 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       manual_compaction_(NULL) {
   has_imm_.Release_Store(NULL);
 
+  //whc add
+     //ssdname_ =  "/tmp/vssd";
+     ssd_cache_ = new SSDCache(options_,ssdname_);
+
   // Reserve ten files or so for other uses and give the rest to TableCache.
   const int table_cache_size = options_.max_open_files - kNumNonTableCacheFiles;
-  table_cache_ = new TableCache(dbname_, &options_, table_cache_size);
+  table_cache_ = new TableCache(dbname_, &options_, table_cache_size,ssd_cache_);
 
   versions_ = new VersionSet(dbname_, &options_, table_cache_,
                              &internal_comparator_);
+
+  //whc add
+  //ssd_trail = (int*)malloc(sizeof(int)*1000000000);
+  //unordered_map<int,int>  map;
+ // printf("size is %d\n",1<<25);
+  //for (int i=0;i<(1<<25);i++){
+  		//map.insert(std::make_pair(i,i));
+  	//}
 }
 
 DBImpl::~DBImpl() {
@@ -171,6 +189,8 @@ DBImpl::~DBImpl() {
   if (owns_cache_) {
     delete options_.block_cache;
   }
+  //whc add
+  //delete ssd_trail;
 }
 
 Status DBImpl::NewDB() {
